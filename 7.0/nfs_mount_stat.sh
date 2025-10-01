@@ -2,7 +2,16 @@
 
 MOUNTPOINT="$1"
 METRIC="$2"
-DEBUG_LOG="/tmp/nfs_mount_stat_debug.log"
+DEBUG_LOG="${ZABBIX_NFS_DEBUG_LOG:-/var/log/zabbix/nfs_mount_stat_debug.log}"
+
+# Ensure the debug log directory exists and is writable
+DEBUG_DIR=$(dirname "$DEBUG_LOG")
+if [ ! -d "$DEBUG_DIR" ]; then
+  mkdir -p "$DEBUG_DIR" 2>/dev/null || {
+    echo "ZBX_NOTSUPPORTED: Cannot create debug log directory $DEBUG_DIR"
+    exit 1
+  }
+fi
 
 # Validate inputs
 if [ -z "$MOUNTPOINT" ] || [ -z "$METRIC" ]; then
@@ -12,7 +21,7 @@ if [ -z "$MOUNTPOINT" ] || [ -z "$METRIC" ]; then
 fi
 
 # Log inputs and environment
-echo "$(date +'%Y-%m-%d %H:%M:%S.%N %Z'): Running for mountpoint=$MOUNTPOINT, metric=$METRIC, user=$USER" >> "$DEBUG_LOG"
+echo "$(date +'%Y-%m-%d %H:%M:%S.%N %Z'): Running for mountpoint=$MOUNTPOINT, metric=$METRIC, user=$USER" >> "$DEBUG_LOG" 2>/dev/null || echo "ZBX_NOTSUPPORTED: Cannot write to debug log $DEBUG_LOG"
 
 # Verify mountpoint is NFS
 mount_output=$(mount -t nfs,nfs4 | grep -E "[[:space:]]${MOUNTPOINT}([[:space:]]|,|$)")
