@@ -76,7 +76,7 @@ The project includes:
    - `nfs.mount.stat[/mountpoint,read]`
    - `nfs.mount.stat[/mountpoint,write]`
    - `vfs.fs.size[/mountpoint,pfree]`
-3. Verify graphs in **Monitoring > Graphs** (e.g., "NFS Operations on /sambashares", "NFS Data Transfer on /mountpoint").
+3. Verify graphs in **Monitoring > Graphs** (e.g., "NFS Operations on /mountpoint", "NFS Data Transfer on /mountpoint").
 4. Test specific metrics:
    ```bash
    zabbix_get -s 127.0.0.1 -k 'nfs.mount.stat[/mountpoint,read]'
