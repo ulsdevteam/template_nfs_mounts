@@ -63,7 +63,7 @@ The project includes:
 ### Step 3: Import the Zabbix Template
 1. Log in to the Zabbix web interface.
 2. Navigate to **Configuration > Templates > Import**.
-3. Select `template_nfs_client_mounts.xml` and upload it.
+3. Select the version relevant `template_nfs_client_mounts_X.0.xml` from the sub directory and upload it.
 4. Ensure the options "Create new" and "Update existing" are checked as needed.
 5. Apply the template to hosts with NFS mounts.
 
