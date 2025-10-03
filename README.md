@@ -76,7 +76,9 @@ The project includes:
    - `nfs.mount.stat[/mountpoint,read]`
    - `nfs.mount.stat[/mountpoint,write]`
    - `vfs.fs.size[/mountpoint,pfree]`
+
 3. Verify graphs in **Monitoring > Graphs** (e.g., "NFS Operations on /mountpoint", "NFS Data Transfer on /mountpoint").
+
 4. Test specific metrics:
    ```bash
    zabbix_get -s 127.0.0.1 -k 'nfs.mount.stat[/mountpoint,read]'
@@ -98,6 +100,9 @@ The project includes:
   ```bash
   rpm -q rpcbind || apt install rpcbind
   ```
+
+### Trigger Adjustment
+Feel free to adjust per host triggers or adjust the triggers in the template to suit your system's needs.  This may include disabling some triggers or increasing the default value of 100/sec for each of the operations.
 
 ### Notes
 - **Performance**: Adjust the LLD interval (default: 1h) or item polling intervals (default: 1m) if monitoring many mounts.
