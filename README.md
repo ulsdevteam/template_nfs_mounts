@@ -91,14 +91,47 @@ The project includes:
 ## Discovery rules
 |Name|Description|Type|Key and additional info|
 |----|-----------|----|----|
+|NFS mounts discovery|Discovers active NFS mounts and their servers.|Zabbix agent|nfs.discovery|
 
 ## Items collected
 |Name|Description|Type|Key and additional info|
 |----|-----------|----|----|
+|NFS server [{#SERVER}] connection|Monitors rpcinfo for program '100003'|nfs.server.check[{#SERVER}]|
+|NFS mount [{#MOUNTPOINT}] total space|Size of the mount point in Bytes|Zabbix agent|vfs.fs.size[{#MOUNTPOINT}],total]|
+|NFS mount [{#MOUNTPOINT}] used space|Used space of the mount point in Bytes|Zabbix agent|vfs.fs.size[{#MOUNTPOINT}],used]|
+|NFS mount [{#MOUNTPOINT}] free space|Free space of the mount point in Bytes|Zabbix agent|vfs.fs.size[{#MOUNTPOINT}],free]|
+|NFS mount [{#MOUNTPOINT}] free space (%)|Free space of the mount point in Percent|Zabbix agent|vfs.fs.size[{#MOUNTPOINT}],pfree]|
+|NFS mount [{#MOUNTPOINT}] accessibility|Monitors accessibility of the mount point.|Zabbix agent|nfs.mount.check[{#MOUNTPOINT}]|
+|NFS mount [{#MOUNTPOINT}] age (seconds)| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],age]|
+|NFS mount [{#MOUNTPOINT}] commit operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],commit]|
+|NFS mount [{#MOUNTPOINT}] create operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],create]|
+|NFS mount [{#MOUNTPOINT}] fsinfo operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],fsinfo]|
+|NFS mount [{#MOUNTPOINT}] fsstat operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],fsstat]|
+|NFS mount [{#MOUNTPOINT}] getattr operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],getattr]|
+|NFS mount [{#MOUNTPOINT}] link operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],link]|
+|NFS mount [{#MOUNTPOINT}] mkdir operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],mkdir]|
+|NFS mount [{#MOUNTPOINT}] mknod operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],mknod]|
+|NFS mount [{#MOUNTPOINT}] pathconf operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],pathconf]|
+|NFS mount [{#MOUNTPOINT}] readdir operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],readdir]|
+|NFS mount [{#MOUNTPOINT}] readdirplus operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],readdirplus]|
+|NFS mount [{#MOUNTPOINT}] read operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],read]|
+|NFS mount [{#MOUNTPOINT}] remove operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],remove]|
+|NFS mount [{#MOUNTPOINT}] rename operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],rename]|
+|NFS mount [{#MOUNTPOINT}] rmdir operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],rmdir]|
+|NFS mount [{#MOUNTPOINT}] setattr operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],setattr]|
+|NFS mount [{#MOUNTPOINT}] symlink operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],symlink]|
+|NFS mount [{#MOUNTPOINT}] total bytes read| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],bytes_read]|
+|NFS mount [{#MOUNTPOINT}] total bytes written| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],bytes_written]|
+|NFS mount [{#MOUNTPOINT}] total retransmissions| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],retrans_total]|
+|NFS mount [{#MOUNTPOINT}] write operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],write]|
+
 
 ## Triggers
 |Name|Description|Expression|Priority|
 |----|-----------|----------|--------|
+|NFS mount {#MOUNTPOINT} is not accessible|NFS mount point is timing out|{Template NFS Client Mounts:nfs.mount.check[{#MOUNTPOINT}].last()}<>0|High|
+|NFS connection to server {#SERVER} failed|NFS server is unreachable|{Template NFS Client Mounts:nfs.server.check[{#SERVER}].last()}<>0|High|
+|Low free space on NFS mount {#MOUNTPOINT}(<10%)|Free space on mount point is less than 10%|{Template NFS Client Mounts:nfs.server.check[{#SERVER}].last()}<>0|High|
 
 ## Feedback
 
