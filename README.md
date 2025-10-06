@@ -16,9 +16,9 @@ The project includes:
 - `nfs_discovery.sh`: Script for LLD of NFS mounts and servers.
 - `nfs_mount_stat.sh`: Script to extract NFS statistics from `/proc/self/mountstats`.
 
-## Requirements
+## Setup 
 
-### Software
+### Required Software
 - **Zabbix Server and Agent**: Version 5.0 or later.
 - **Linux System**: The monitored host must run a Linux distribution with NFS client support and `/proc/self/mountstats` available.
 - **Zabbix Agent**: Installed and running on the monitored host.
@@ -32,7 +32,7 @@ The project includes:
 ### Hardware
 - Minimal resource requirements; depends on the number of NFS mounts and polling frequency.
 
-## Installation
+## Zabbix configuration
 
 ### Step 1: Deploy Scripts
 1. Copy the provided scripts to the monitored host:
@@ -86,6 +86,16 @@ The project includes:
    zabbix_get -s 127.0.0.1 -k 'nfs.mount.stat[/mountpoint,getattr]'
    ```
 
+## Template Links
+
+## Discovery rules
+
+## Items collected
+
+## Triggers
+
+## Feedback
+
 ### Troubleshooting
 - **Import Errors**: Check `/var/log/zabbix/zabbix_server.log` for XML parsing issues.
 - **Script Errors**: Review `/tmp/nfs_mount_stat_debug.log` for issues with `nfs_mount_stat.sh` (e.g., missing metrics like `getattr`).
@@ -106,4 +116,11 @@ Feel free to adjust per host triggers or adjust the triggers in the template to 
 
 ### Notes
 - **Performance**: Adjust the LLD interval (default: 1h) or item polling intervals (default: 1m) if monitoring many mounts.
+
+## Demo
+
+## Known issues
+
+## References
+
 
