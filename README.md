@@ -89,10 +89,16 @@ The project includes:
 ## Template Links
 
 ## Discovery rules
+|Name|Description|Type|Key and additional info|
+|----|-----------|----|----|
 
 ## Items collected
+|Name|Description|Type|Key and additional info|
+|----|-----------|----|----|
 
 ## Triggers
+|Name|Description|Expression|Priority|
+|----|-----------|----------|--------|
 
 ## Feedback
 
