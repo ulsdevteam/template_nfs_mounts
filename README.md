@@ -159,7 +159,12 @@ Feel free to adjust per host triggers or adjust the triggers in the template to 
 ## Demo
 
 ## Known issues
+- Created and tested with Zabbix version 5.0.
+- **NOTE:** Templates for Zabbix version 6.0 and 7.0 were AI created and may need tested/tweaked to work properly.
 
 ## References
-
+- https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/nfs_iostat.h
+- https://utcc.utoronto.ca/~cks/space/blog/linux/NFSMountstatsBytesEvents
+- https://www.zabbix.com/documentation/guidelines/en/thosts/key_principles
+- https://www.zabbix.com/documentation/guidelines/en/thosts/template_styling#template-styling
 
