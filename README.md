@@ -139,12 +139,30 @@ The following are what can be triggered on.  The first three triggers are the Hi
 |NFS mount {#MOUNTPOINT} is not accessible|NFS mount point is timing out|{Template NFS Client Mounts:nfs.mount.check[{#MOUNTPOINT}].last()}<>0|High|
 |NFS connection to server {#SERVER} failed|NFS server is unreachable|{Template NFS Client Mounts:nfs.server.check[{#SERVER}].last()}<>0|High|
 |Low free space on NFS mount {#MOUNTPOINT}(<10%)|Free space on mount point is less than 10%|{Template NFS Client Mounts:nfs.server.check[{#SERVER}].last()}<>0|High|
+|High commit rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},commit].last()}>100|Warning|
+|High create rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},create].last()}>100|Warning|
+|High fsinfo rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},fsinfo].last()}>100|Warning|
+|High fsstat rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},fsstat].last()}>100|Warning|
+|High getattr rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},getattr].last()}>100|Warning|
+|High link rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},link].last()}>100|Warning|
+|High mkdir rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},mkdir].last()}>100|Warning|
+|High pathconf rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},pathconf].last()}>100|Warning|
+|High readdirplus rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},readdirplus].last()}>100|Warning|
+|High readdir rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},readdir].last()}>100|Warning|
+|High remove rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},remove].last()}>100|Warning|
+|High rename rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},rename].last()}>100|Warning|
+|High retransmission rate on NFS mount {#MOUNTPOINT}(>0.1/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},retrans_total].last()}>0.1|Warning|
+|High rmdir rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},rmdir].last()}>100|Warning|
+|High setattr rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},setattr].last()}>100|Warning|
+|High symlink rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},symlink].last()}>100|Warning|
+
+
 
 ## Feedback
 
 Please open an issue against this project: https://github.com/ulsdevteam/template_nfs_mounts.
 
-### Troubleshooting
+## Troubleshooting
 - **Import Errors**: Check `/var/log/zabbix/zabbix_server.log` for XML parsing issues.
 - **Script Errors**: Review `/tmp/nfs_mount_stat_debug.log` for issues with `nfs_mount_stat.sh` (e.g., missing metrics like `getattr`).
   ```bash
@@ -159,10 +177,10 @@ Please open an issue against this project: https://github.com/ulsdevteam/templat
   rpm -q rpcbind || apt install rpcbind
   ```
 
-### Trigger Adjustment
+## Trigger Adjustment
 Feel free to adjust per host triggers or adjust the triggers in the template to suit your system's needs.  This may include disabling some triggers or increasing the default value of 100/sec for each of the operations.
 
-### Notes
+## Notes
 - **Performance**: Adjust the LLD interval (default: 1h) or item polling intervals (default: 1m) if monitoring many mounts.
 
 ## Demo
