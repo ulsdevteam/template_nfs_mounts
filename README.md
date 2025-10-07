@@ -168,7 +168,7 @@ Feel free to adjust per host triggers or adjust the triggers in the template to 
 ## Demo
 
 ## Known issues
-- Created and tested with Zabbix version 5.0.
+- Created and tested with Zabbix version 5.0.47.
 - **NOTE:** Templates for Zabbix version 6.0 and 7.0 were AI created and may need tested/tweaked to work properly.
 
 ## References
