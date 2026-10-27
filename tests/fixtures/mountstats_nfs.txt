@@ -1,0 +1,50 @@
+device proc mounted on /proc with fstype proc
+device rootfs mounted on / with fstype xfs
+device nfs-a.example.edu:/export_a mounted on /var/www/peertube/storage with fstype nfs4 statvers=1.1
+	opts:	rw,vers=4.2,hard,proto=tcp
+	age:	17229
+	bytes:	947903661 664255 0 0 926970185 1497816 226420 585
+	RPC iostats version: 1.1  p/v: 100003/4 (nfs)
+	xprt:	tcp 0 0 2 0 8 72131 72128 2 287863 0 8 618 45472
+	per-op statistics
+	        NULL: 1 1 0 44 24 1 1 3 0
+	        READ: 14368 14368 0 3218432 928464552 131 120427 120706 0
+	       WRITE: 425 425 0 1602148 76556 11 658 673 0
+	      COMMIT: 0 0 0 0 0 0 0 0 0
+	        OPEN: 9 9 0 2868 3904 0 139 139 0
+	     SETATTR: 0 0 0 0 0 0 0 0 0
+	      FSINFO: 1 1 0 204 156 0 0 0 0
+	      ACCESS: 10729 10729 0 2274820 1845388 13 9527 9604 0
+	     GETATTR: 16953 16953 0 3530512 5216364 32 16490 16652 1
+	      LOOKUP: 6773 6773 0 1734288 2436572 13 16279 16333 3
+	      REMOVE: 8 8 0 1692 908 0 127 127 1
+	      RENAME: 0 0 0 0 0 0 0 0 0
+	        LINK: 0 0 0 0 0 0 0 0 0
+	     SYMLINK: 0 0 0 0 0 0 0 0 0
+	      CREATE: 28 28 0 9004 4464 0 168 169 22
+	    PATHCONF: 1 1 0 200 124 0 0 0 0
+	      STATFS: 1049 1049 0 218184 172036 11 1529 1556 0
+	     READDIR: 9787 9787 0 2268900 21471800 15 181061 181170 0
+	 EXCHANGE_ID: 2 2 0 632 344 0 1 1 0
+	SECINFO_NO_NAME: 0 0 0 0 0 0 0 0 0
+	   READ_PLUS: 0 0 0 0 0 0 0 0 0
+
+device 10.0.0.9:/export/v3 mounted on /mnt/v3data with fstype nfs statvers=1.1
+	opts:	rw,vers=3,hard
+	age:	120
+	bytes:	5000000000 2000 300 400 0 0 0 0
+	per-op statistics
+	        NULL: 0 0 0 0 0 0 0 0
+	     GETATTR: 50 50 0 0 0 0 0 0
+	     SETATTR: 0 0 0 0 0 0 0 0
+	        READ: 100 108 0 0 0 0 0 0
+	       WRITE: 10 10 0 0 0 0 0 0
+	      CREATE: 1 1 0 0 0 0 0 0
+	       MKDIR: 2 2 0 0 0 0 0 0
+	 READDIRPLUS: 7 7 0 0 0 0 0 0
+	      FSSTAT: 3 3 0 0 0 0 0 0
+	      FSINFO: 1 1 0 0 0 0 0 0
+	    PATHCONF: 1 1 0 0 0 0 0 0
+	      COMMIT: 0 0 0 0 0 0 0 0
+
+device tmpfs mounted on /run/user/0 with fstype tmpfs

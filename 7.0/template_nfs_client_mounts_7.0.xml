@@ -1,703 +1,535 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <zabbix_export>
     <version>7.0</version>
-    <date>2025-10-01T10:00:00Z</date>
-    <groups>
+    <date>2026-10-26T20:00:00Z</date>
+    <template_groups>
         <group>
-            <uuid>7df96b18c230490a9a0a9e2307226338</uuid>
+            <uuid>ee67ff183dc647aaad190acc3e9027d9</uuid>
             <name>Templates/Operating systems</name>
         </group>
-    </groups>
+    </template_groups>
     <templates>
         <template>
-            <uuid>1c0e2e0ab5484a339df4b2141a2f2728</uuid>
+            <uuid>24678fe8909f40d9ab0d007d8a6b5efc</uuid>
             <template>Template NFS Client Mounts</template>
             <name>Template NFS Client Mounts</name>
-            <description>Monitors NFS mounts with LLD, space usage, accessibility, server connection, and per-mount statistics from /proc/self/mountstats.</description>
+            <description>NFS client monitoring: per-mount accessibility (stat), server reachability, space usage and statistics from /proc/self/mountstats. Needs userparameter_nfs.conf, nfs_discovery.sh and nfs_mount_stat.sh on the host.</description>
             <groups>
                 <group>
                     <name>Templates/Operating systems</name>
                 </group>
             </groups>
-            <applications/>
-            <items/>
+            <macros>
+                <macro>
+                    <macro>{$NFS.PFREE.HIGH}</macro>
+                    <value>5</value>
+                    <description>Free space % below which HIGH fires</description>
+                </macro>
+                <macro>
+                    <macro>{$NFS.PFREE.AVG}</macro>
+                    <value>10</value>
+                    <description>Free space % below which AVERAGE fires</description>
+                </macro>
+                <macro>
+                    <macro>{$NFS.PFREE.WARN}</macro>
+                    <value>20</value>
+                    <description>Free space % below which WARNING fires</description>
+                </macro>
+                <macro>
+                    <macro>{$NFS.AGE.MIN}</macro>
+                    <value>300</value>
+                    <description>Mount age (s) under which a remount is reported</description>
+                </macro>
+                <macro>
+                    <macro>{$NFS.RETRANS.RATE}</macro>
+                    <value>0</value>
+                    <description>RPC retransmissions/s that must be exceeded for 10m to alert</description>
+                </macro>
+            </macros>
             <discovery_rules>
                 <discovery_rule>
-                    <uuid>0a5b6a7e0f554a4f9e2a1a9f4e0e4f4e</uuid>
+                    <uuid>d6def0dee38f4c8cbf65e90d309c204d</uuid>
                     <name>NFS mounts discovery</name>
-                    <description>Discovers active NFS mounts and their servers.</description>
-                    <type>0</type>
                     <key>nfs.discovery</key>
-                    <delay>1h</delay>
-                    <lifetime>30d</lifetime>
+                    <delay>15m</delay>
+                    <lifetime>7d</lifetime>
+                    <description>Returns {#MOUNTPOINT} and {#SERVER} (bare host name or IP) for each NFS mount.</description>
                     <item_prototypes>
                         <item_prototype>
-                            <uuid>2a1b3c4d5e6f7890a1b2c3d4e5f67890</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] total space</name>
-                            <type>0</type>
-                            <key>vfs.fs.size[{#MOUNTPOINT},total]</key>
-                            <delay>1m</delay>
-                            <value_type>3</value_type>
-                            <units>B</units>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>3b4c5d6e7f8091a2b3c4d5e6f78901ab</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] free space</name>
-                            <type>0</type>
-                            <key>vfs.fs.size[{#MOUNTPOINT},free]</key>
-                            <delay>1m</delay>
-                            <value_type>3</value_type>
-                            <units>B</units>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>4c5d6e7f8091a2b3c4d5e6f78901abc2</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] used space</name>
-                            <type>0</type>
-                            <key>vfs.fs.size[{#MOUNTPOINT},used]</key>
-                            <delay>1m</delay>
-                            <value_type>3</value_type>
-                            <units>B</units>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>5d6e7f8091a2b3c4d5e6f78901abc2d3</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] free space (%)</name>
-                            <type>0</type>
-                            <key>vfs.fs.size[{#MOUNTPOINT},pfree]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <units>%</units>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>6e7f8091a2b3c4d5e6f78901abc2d3e4</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] accessibility</name>
-                            <type>0</type>
+                            <uuid>fa5b7c78d56341d5b557f58b5629a3ba</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] accessibility (stat exit code)</name>
                             <key>nfs.mount.check[{#MOUNTPOINT}]</key>
                             <delay>1m</delay>
-                            <value_type>3</value_type>
+                            <description>Exit code of a timed stat on the mount point. 0 = OK, 124/137 = hung (timeout fired), 1/2 = missing or stale handle.</description>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>7f8091a2b3c4d5e6f78901abc2d3e4f5</uuid>
-                            <name>NFS server [{#SERVER}] connection</name>
-                            <type>0</type>
-                            <key>nfs.server.check[{#SERVER}]</key>
+                            <uuid>971a245538b24b4c961910db44fc5182</uuid>
+                            <name>NFS server [{#SERVER}] rpcinfo exit code (mount {#MOUNTPOINT})</name>
+                            <key>nfs.server.check[{#SERVER},{#MOUNTPOINT}]</key>
                             <delay>1m</delay>
-                            <value_type>3</value_type>
+                            <description>Exit code of rpcinfo for the NFS program (100003). 0 = server answers, 124 = timed out, other non-zero = rpcinfo failed.</description>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>8g91a2b3c4d5e6f78901abc2d3e4f567</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] age (seconds)</name>
-                            <type>0</type>
+                            <uuid>94e0e45a9bdf4e089bbfe143430eaba3</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] age</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},age]</key>
                             <delay>1m</delay>
-                            <value_type>3</value_type>
                             <units>s</units>
+                            <description>Seconds since the mount was established.</description>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>9h02b3c4d5e6f78901abc2d3e4f56789</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] total bytes read</name>
-                            <type>0</type>
+                            <uuid>a561bb10d9214ca1ad426fe99e225eb0</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] bytes read (application level)</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},bytes_read]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <units>B</units>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>Bps</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>ai13c4d5e6f78901abc2d3e4f567890a</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] total bytes written</name>
-                            <type>0</type>
+                            <uuid>ccdb6924ec5f4678ae98a5b45a008b04</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] bytes written (application level)</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},bytes_written]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <units>B</units>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>Bps</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>bj24d5e6f78901abc2d3e4f567890abc</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] read operations</name>
-                            <type>0</type>
+                            <uuid>081ddeb037e0470ba5851a73cd52a26c</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] READ operations/s</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},read]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>ops/s</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>ck35e6f78901abc2d3e4f567890abcd1</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] write operations</name>
-                            <type>0</type>
+                            <uuid>c4b88dbe6ab845eda3cb9ef446591766</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] WRITE operations/s</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},write]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>ops/s</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>dl46f78901abc2d3e4f567890abcd1e2</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] total retransmissions</name>
-                            <type>0</type>
-                            <key>nfs.mount.stat[{#MOUNTPOINT},retrans_total]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <preprocessing>
-                                <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
-                                </step>
-                            </preprocessing>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>em57g89012bcd3e4f567890abcd1e2f3</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] getattr operations</name>
-                            <type>0</type>
+                            <uuid>2e23303dcc8344169c056b39a972e0bd</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] GETATTR operations/s</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},getattr]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>ops/s</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>fn68h90123cde4f567890abcd1e2f304</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] setattr operations</name>
-                            <type>0</type>
+                            <uuid>72f082809ee14e07a68e03b36e5085fc</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] SETATTR operations/s</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},setattr]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>ops/s</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>go79i01234def567890abcd1e2f30415</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] create operations</name>
-                            <type>0</type>
+                            <uuid>a595a754f77c4b9c98d2546a18918f46</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] CREATE operations/s</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},create]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>ops/s</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>hp80j12345ef67890abcd1e2f3041526</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] mkdir operations</name>
-                            <type>0</type>
-                            <key>nfs.mount.stat[{#MOUNTPOINT},mkdir]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <preprocessing>
-                                <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
-                                </step>
-                            </preprocessing>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>iq91k23456fg7890abcd1e2f30415273</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] symlink operations</name>
-                            <type>0</type>
-                            <key>nfs.mount.stat[{#MOUNTPOINT},symlink]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <preprocessing>
-                                <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
-                                </step>
-                            </preprocessing>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>jr02l34567gh890abcd1e2f304152784</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] mknod operations</name>
-                            <type>0</type>
-                            <key>nfs.mount.stat[{#MOUNTPOINT},mknod]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <preprocessing>
-                                <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
-                                </step>
-                            </preprocessing>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>ks13m45678hi901bcd1e2f3041527895</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] remove operations</name>
-                            <type>0</type>
+                            <uuid>94814479d4e64b218989c4bfaa8d79b6</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] REMOVE operations/s</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},remove]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>ops/s</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>lt24n56789ij012cde2f3041527890a6</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] rmdir operations</name>
-                            <type>0</type>
-                            <key>nfs.mount.stat[{#MOUNTPOINT},rmdir]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <preprocessing>
-                                <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
-                                </step>
-                            </preprocessing>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>mu35o67890jk123def3041527890ab17</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] rename operations</name>
-                            <type>0</type>
+                            <uuid>ed4e71184105461f9d322ce1bd0b7669</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] RENAME operations/s</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},rename]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>ops/s</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>nv46p78901kl234ef41527890ab1c28</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] link operations</name>
-                            <type>0</type>
-                            <key>nfs.mount.stat[{#MOUNTPOINT},link]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <preprocessing>
-                                <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
-                                </step>
-                            </preprocessing>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>ow57q89012lm345fg5267890ab1c2d39</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] readdir operations</name>
-                            <type>0</type>
+                            <uuid>b60e4d0440c84a3bb0d1bfa11a4289db</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] READDIR operations/s</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},readdir]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>ops/s</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
                         </item_prototype>
                         <item_prototype>
-                            <uuid>px68r90123mn456gh637890ab1c2d3e4</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] readdirplus operations</name>
-                            <type>0</type>
-                            <key>nfs.mount.stat[{#MOUNTPOINT},readdirplus]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <preprocessing>
-                                <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
-                                </step>
-                            </preprocessing>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>qy79s01234no567hi74890ab1c2d3e4f</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] fsstat operations</name>
-                            <type>0</type>
-                            <key>nfs.mount.stat[{#MOUNTPOINT},fsstat]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <preprocessing>
-                                <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
-                                </step>
-                            </preprocessing>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>rz80t12345op678ij8590ab1c2d3e4f5</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] fsinfo operations</name>
-                            <type>0</type>
-                            <key>nfs.mount.stat[{#MOUNTPOINT},fsinfo]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <preprocessing>
-                                <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
-                                </step>
-                            </preprocessing>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>sa91u23456pq789jk960ab1c2d3e4f506</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] pathconf operations</name>
-                            <type>0</type>
-                            <key>nfs.mount.stat[{#MOUNTPOINT},pathconf]</key>
-                            <delay>1m</delay>
-                            <value_type>0</value_type>
-                            <preprocessing>
-                                <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
-                                </step>
-                            </preprocessing>
-                        </item_prototype>
-                        <item_prototype>
-                            <uuid>tb02v34567qr890kl071ab1c2d3e4f517</uuid>
-                            <name>NFS mount [{#MOUNTPOINT}] commit operations</name>
-                            <type>0</type>
+                            <uuid>5994bae33427415db0e8415961b82d2d</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] COMMIT operations/s</name>
                             <key>nfs.mount.stat[{#MOUNTPOINT},commit]</key>
                             <delay>1m</delay>
-                            <value_type>0</value_type>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>ops/s</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                             <preprocessing>
                                 <step>
-                                    <type>9</type>
-                                    <params>1</params>
-                                    <error_handler>0</error_handler>
-                                    <error_handler_params></error_handler_params>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
                                 </step>
                             </preprocessing>
+                        </item_prototype>
+                        <item_prototype>
+                            <uuid>df5dd5bd47f745f7b380551b8e30ea71</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] RPC retransmissions/s</name>
+                            <key>nfs.mount.stat[{#MOUNTPOINT},retrans_total]</key>
+                            <delay>1m</delay>
+                            <history>30d</history>
+                            <value_type>FLOAT</value_type>
+                            <units>retrans/s</units>
+                            <description>Sum over all ops of (transmissions - ops).</description>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
+                            <preprocessing>
+                                <step>
+                                    <type>CHANGE_PER_SECOND</type>
+                                    <parameters />
+                                </step>
+                            </preprocessing>
+                        </item_prototype>
+                        <item_prototype>
+                            <uuid>e730a13cb6bb46abb2ea37d9a4a5aca9</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] free space</name>
+                            <key>vfs.fs.size[{#MOUNTPOINT},free]</key>
+                            <delay>5m</delay>
+                            <units>B</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
+                        </item_prototype>
+                        <item_prototype>
+                            <uuid>d36988c5e59c42d78f2ba256cd1bea8f</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] free space (%)</name>
+                            <key>vfs.fs.size[{#MOUNTPOINT},pfree]</key>
+                            <delay>5m</delay>
+                            <value_type>FLOAT</value_type>
+                            <units>%</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
+                        </item_prototype>
+                        <item_prototype>
+                            <uuid>81b43b4e112a4749bb16a17aa31bd5d9</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] total space</name>
+                            <key>vfs.fs.size[{#MOUNTPOINT},total]</key>
+                            <delay>5m</delay>
+                            <units>B</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
+                        </item_prototype>
+                        <item_prototype>
+                            <uuid>43cfe3f920944fe7bef2adc51baada6d</uuid>
+                            <name>NFS mount [{#MOUNTPOINT}] used space</name>
+                            <key>vfs.fs.size[{#MOUNTPOINT},used]</key>
+                            <delay>5m</delay>
+                            <units>B</units>
+                            <tags>
+                                <tag>
+                                    <tag>component</tag>
+                                    <value>nfs</value>
+                                </tag>
+                            </tags>
                         </item_prototype>
                     </item_prototypes>
                     <trigger_prototypes>
                         <trigger_prototype>
-                            <uuid>8091a2b3c4d5e6f78901abc2d3e4f567</uuid>
-                            <expression>last(/Template NFS Client Mounts/nfs.mount.check[{#MOUNTPOINT}])&lt;&gt;0</expression>
+                            <uuid>c4fb81542ca54f0f8227f0b6b6450e79</uuid>
+                            <expression>min(/Template NFS Client Mounts/nfs.server.check[{#SERVER},{#MOUNTPOINT}],#2)&gt;0</expression>
+                            <name>NFS server {#SERVER} is not responding (checked for {#MOUNTPOINT})</name>
+                            <priority>HIGH</priority>
+                            <description>The server check (rpcinfo) returned a non-zero exit code twice in a row.</description>
+                            <tags>
+                                <tag>
+                                    <tag>scope</tag>
+                                    <value>availability</value>
+                                </tag>
+                            </tags>
+                        </trigger_prototype>
+                        <trigger_prototype>
+                            <uuid>7a25fdb5413e4a669805271c5be0e3a1</uuid>
+                            <expression>min(/Template NFS Client Mounts/nfs.mount.check[{#MOUNTPOINT}],#2)&gt;0</expression>
                             <name>NFS mount {#MOUNTPOINT} is not accessible</name>
-                            <priority>3</priority>
-                            <description>The mount is stale or unresponsive.</description>
+                            <priority>HIGH</priority>
+                            <description>stat on the mount point failed or timed out twice in a row (hung or stale mount).</description>
+                            <tags>
+                                <tag>
+                                    <tag>scope</tag>
+                                    <value>availability</value>
+                                </tag>
+                            </tags>
                         </trigger_prototype>
                         <trigger_prototype>
-                            <uuid>91a2b3c4d5e6f78901abc2d3e4f56789</uuid>
-                            <expression>last(/Template NFS Client Mounts/nfs.server.check[{#SERVER}])&lt;&gt;0</expression>
-                            <name>NFS connection to server {#SERVER} failed</name>
-                            <priority>3</priority>
-                            <description>Cannot connect to NFS service on the server.</description>
+                            <uuid>5e67d9f2a5f84b3fa6d9c0438e0c7b41</uuid>
+                            <expression>last(/Template NFS Client Mounts/vfs.fs.size[{#MOUNTPOINT},pfree])&lt;{$NFS.PFREE.HIGH}</expression>
+                            <name>NFS mount {#MOUNTPOINT}: free space below {$NFS.PFREE.HIGH}%</name>
+                            <priority>HIGH</priority>
+                            <dependencies>
+                                <dependency>
+                                    <name>NFS mount {#MOUNTPOINT} is not accessible</name>
+                                    <expression>min(/Template NFS Client Mounts/nfs.mount.check[{#MOUNTPOINT}],#2)&gt;0</expression>
+                                </dependency>
+                            </dependencies>
+                            <tags>
+                                <tag>
+                                    <tag>scope</tag>
+                                    <value>availability</value>
+                                </tag>
+                            </tags>
                         </trigger_prototype>
                         <trigger_prototype>
-                            <uuid>a2b3c4d5e6f78901abc2d3e4f567890a</uuid>
-                            <expression>last(/Template NFS Client Mounts/vfs.fs.size[{#MOUNTPOINT},pfree])&lt;10</expression>
-                            <name>Low free space on NFS mount {#MOUNTPOINT} (&lt;10%)</name>
-                            <priority>2</priority>
-                            <description>Free space is below 10%.</description>
+                            <uuid>45b5e6c57cb6450b8902c74a7203ebb4</uuid>
+                            <expression>last(/Template NFS Client Mounts/vfs.fs.size[{#MOUNTPOINT},pfree])&lt;{$NFS.PFREE.AVG}</expression>
+                            <name>NFS mount {#MOUNTPOINT}: free space below {$NFS.PFREE.AVG}%</name>
+                            <priority>AVERAGE</priority>
+                            <dependencies>
+                                <dependency>
+                                    <name>NFS mount {#MOUNTPOINT}: free space below {$NFS.PFREE.HIGH}%</name>
+                                    <expression>last(/Template NFS Client Mounts/vfs.fs.size[{#MOUNTPOINT},pfree])&lt;{$NFS.PFREE.HIGH}</expression>
+                                </dependency>
+                            </dependencies>
+                            <tags>
+                                <tag>
+                                    <tag>scope</tag>
+                                    <value>availability</value>
+                                </tag>
+                            </tags>
                         </trigger_prototype>
                         <trigger_prototype>
-                            <uuid>b3c4d5e6f78901abc2d3e4f567890ab1</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},retrans_total])&gt;0.1</expression>
-                            <name>High retransmission rate on NFS mount {#MOUNTPOINT} (&gt;0.1/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive retransmissions may indicate network issues.</description>
+                            <uuid>8e89a9d55baa412fbe6b74578a3f7d16</uuid>
+                            <expression>last(/Template NFS Client Mounts/vfs.fs.size[{#MOUNTPOINT},pfree])&lt;{$NFS.PFREE.WARN}</expression>
+                            <name>NFS mount {#MOUNTPOINT}: free space below {$NFS.PFREE.WARN}%</name>
+                            <priority>WARNING</priority>
+                            <dependencies>
+                                <dependency>
+                                    <name>NFS mount {#MOUNTPOINT}: free space below {$NFS.PFREE.AVG}%</name>
+                                    <expression>last(/Template NFS Client Mounts/vfs.fs.size[{#MOUNTPOINT},pfree])&lt;{$NFS.PFREE.AVG}</expression>
+                                </dependency>
+                            </dependencies>
+                            <tags>
+                                <tag>
+                                    <tag>scope</tag>
+                                    <value>availability</value>
+                                </tag>
+                            </tags>
                         </trigger_prototype>
                         <trigger_prototype>
-                            <uuid>c4d5e6f78901abc2d3e4f567890ab1c2</uuid>
-                            <expression>last(/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},age])&lt;300</expression>
-                            <name>Recent remount on NFS mount {#MOUNTPOINT} (age &lt;5min)</name>
-                            <priority>1</priority>
-                            <description>Mount may have been recently remounted.</description>
+                            <uuid>084afbfc6a18412493cd0ece2fe82deb</uuid>
+                            <expression>last(/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},age])&lt;{$NFS.AGE.MIN}</expression>
+                            <name>NFS mount {#MOUNTPOINT} was (re)mounted less than {$NFS.AGE.MIN}s ago</name>
+                            <priority>INFO</priority>
+                            <description>Mount age is below the threshold; the filesystem was recently mounted or remounted.</description>
+                            <dependencies>
+                                <dependency>
+                                    <name>NFS mount {#MOUNTPOINT} is not accessible</name>
+                                    <expression>min(/Template NFS Client Mounts/nfs.mount.check[{#MOUNTPOINT}],#2)&gt;0</expression>
+                                </dependency>
+                            </dependencies>
+                            <tags>
+                                <tag>
+                                    <tag>scope</tag>
+                                    <value>availability</value>
+                                </tag>
+                            </tags>
                         </trigger_prototype>
                         <trigger_prototype>
-                            <uuid>d5e6f78901abc2d3e4f567890ab1c2d3</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},getattr])&gt;100</expression>
-                            <name>High getattr rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive getattr operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>e6f78901abc2d3e4f567890ab1c2d3e4</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},setattr])&gt;100</expression>
-                            <name>High setattr rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive setattr operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>f78901abc2d3e4f567890ab1c2d3e4f5</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},create])&gt;100</expression>
-                            <name>High create rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive create operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>g89012bcd3e4f567890ab1c2d3e4f506</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},mkdir])&gt;100</expression>
-                            <name>High mkdir rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive mkdir operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>h90123cde4f567890ab1c2d3e4f50617</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},symlink])&gt;100</expression>
-                            <name>High symlink rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive symlink operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>i01234def567890ab1c2d3e4f5061728</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},mknod])&gt;100</expression>
-                            <name>High mknod rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive mknod operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>j12345ef67890ab1c2d3e4f506172839</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},remove])&gt;100</expression>
-                            <name>High remove rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive remove operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>k23456fg7890ab1c2d3e4f50617283a0</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},rmdir])&gt;100</expression>
-                            <name>High rmdir rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive rmdir operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>l34567gh890ab1c2d3e4f50617283a1b</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},rename])&gt;100</expression>
-                            <name>High rename rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive rename operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>m45678hi901ab1c2d3e4f50617283a2c</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},link])&gt;100</expression>
-                            <name>High link rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive link operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>n56789ij012bc2d3e4f50617283a2b3d</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},readdir])&gt;100</expression>
-                            <name>High readdir rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive readdir operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>o67890jk123cd3e4f50617283a2b3c4e</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},readdirplus])&gt;100</expression>
-                            <name>High readdirplus rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive readdirplus operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>p78901kl234de4f50617283a2b3c4d5f</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},fsstat])&gt;100</expression>
-                            <name>High fsstat rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive fsstat operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>q89012lm345ef50617283a2b3c4d5e60</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},fsinfo])&gt;100</expression>
-                            <name>High fsinfo rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive fsinfo operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>r90123mn456fg50617283a2b3c4d5e71</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},pathconf])&gt;100</expression>
-                            <name>High pathconf rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive pathconf operations may indicate application issues.</description>
-                        </trigger_prototype>
-                        <trigger_prototype>
-                            <uuid>s01234no567gh50617283a2b3c4d5e82</uuid>
-                            <expression>change(0,/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},commit])&gt;100</expression>
-                            <name>High commit rate on NFS mount {#MOUNTPOINT} (&gt;100/sec)</name>
-                            <priority>2</priority>
-                            <description>Excessive commit operations may indicate application issues.</description>
+                            <uuid>03c258c8ad4c4099b3d6dd407bcec570</uuid>
+                            <expression>min(/Template NFS Client Mounts/nfs.mount.stat[{#MOUNTPOINT},retrans_total],10m)&gt;{$NFS.RETRANS.RATE}</expression>
+                            <name>NFS mount {#MOUNTPOINT}: sustained RPC retransmissions</name>
+                            <priority>WARNING</priority>
+                            <description>Retransmissions occurred in every sample for 10 minutes; check the network path and server load.</description>
+                            <dependencies>
+                                <dependency>
+                                    <name>NFS mount {#MOUNTPOINT} is not accessible</name>
+                                    <expression>min(/Template NFS Client Mounts/nfs.mount.check[{#MOUNTPOINT}],#2)&gt;0</expression>
+                                </dependency>
+                            </dependencies>
+                            <tags>
+                                <tag>
+                                    <tag>scope</tag>
+                                    <value>availability</value>
+                                </tag>
+                            </tags>
                         </trigger_prototype>
                     </trigger_prototypes>
                     <graph_prototypes>
                         <graph_prototype>
-                            <uuid>t12345op678hi50617283a2b3c4d5e93</uuid>
-                            <name>NFS Operations on {#MOUNTPOINT}</name>
-                            <width>900</width>
-                            <height>200</height>
-                            <show_triggers>1</show_triggers>
-                            <type>0</type>
+                            <uuid>3283a9918a0f4445a46200684507a918</uuid>
+                            <name>NFS throughput on {#MOUNTPOINT}</name>
                             <graph_items>
                                 <graph_item>
                                     <sortorder>0</sortorder>
-                                    <color>00CC00</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},getattr]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>1</sortorder>
-                                    <color>CC0000</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},setattr]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>2</sortorder>
-                                    <color>0000CC</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},read]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>3</sortorder>
-                                    <color>FF9900</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},write]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>4</sortorder>
-                                    <color>660066</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},create]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>5</sortorder>
-                                    <color>33CCCC</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},mkdir]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>6</sortorder>
-                                    <color>CC33CC</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},remove]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>7</sortorder>
-                                    <color>FF3333</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},rmdir]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>8</sortorder>
-                                    <color>33FF33</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},rename]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>9</sortorder>
-                                    <color>3333FF</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},link]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>10</sortorder>
-                                    <color>FFFF33</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},readdir]</key>
-                                    </item>
-                                </graph_item>
-                                <graph_item>
-                                    <sortorder>11</sortorder>
-                                    <color>33FFFF</color>
-                                    <item>
-                                        <host>Template NFS Client Mounts</host>
-                                        <key>nfs.mount.stat[{#MOUNTPOINT},readdirplus]</key>
-                                    </item>
-                                </graph_item>
-                            </graph_items>
-                        </graph_prototype>
-                        <graph_prototype>
-                            <uuid>u23456pq789ij50617283a2b3c4d5ea4</uuid>
-                            <name>NFS Data Transfer on {#MOUNTPOINT}</name>
-                            <width>900</width>
-                            <height>200</height>
-                            <show_triggers>0</show_triggers>
-                            <type>0</type>
-                            <graph_items>
-                                <graph_item>
-                                    <sortorder>0</sortorder>
-                                    <color>00CC00</color>
+                                    <color>1A7C11</color>
                                     <item>
                                         <host>Template NFS Client Mounts</host>
                                         <key>nfs.mount.stat[{#MOUNTPOINT},bytes_read]</key>
@@ -705,7 +537,7 @@
                                 </graph_item>
                                 <graph_item>
                                     <sortorder>1</sortorder>
-                                    <color>CC0000</color>
+                                    <color>F63100</color>
                                     <item>
                                         <host>Template NFS Client Mounts</host>
                                         <key>nfs.mount.stat[{#MOUNTPOINT},bytes_written]</key>
@@ -714,16 +546,90 @@
                             </graph_items>
                         </graph_prototype>
                         <graph_prototype>
-                            <uuid>v34567qr890jk50617283a2b3c4d5eb5</uuid>
-                            <name>NFS Retransmissions on {#MOUNTPOINT}</name>
-                            <width>900</width>
-                            <height>200</height>
-                            <show_triggers>1</show_triggers>
-                            <type>0</type>
+                            <uuid>22e3c8433db44bd09900e0cc14fe58f5</uuid>
+                            <name>NFS operations/s on {#MOUNTPOINT}</name>
                             <graph_items>
                                 <graph_item>
                                     <sortorder>0</sortorder>
-                                    <color>CC0000</color>
+                                    <color>1A7C11</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>nfs.mount.stat[{#MOUNTPOINT},read]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>1</sortorder>
+                                    <color>F63100</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>nfs.mount.stat[{#MOUNTPOINT},write]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>2</sortorder>
+                                    <color>2774A4</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>nfs.mount.stat[{#MOUNTPOINT},getattr]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>3</sortorder>
+                                    <color>A54F10</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>nfs.mount.stat[{#MOUNTPOINT},setattr]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>4</sortorder>
+                                    <color>FC6EA3</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>nfs.mount.stat[{#MOUNTPOINT},create]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>5</sortorder>
+                                    <color>6C59DC</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>nfs.mount.stat[{#MOUNTPOINT},remove]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>6</sortorder>
+                                    <color>AC8C14</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>nfs.mount.stat[{#MOUNTPOINT},rename]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>7</sortorder>
+                                    <color>611F27</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>nfs.mount.stat[{#MOUNTPOINT},readdir]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>8</sortorder>
+                                    <color>F230E0</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>nfs.mount.stat[{#MOUNTPOINT},commit]</key>
+                                    </item>
+                                </graph_item>
+                            </graph_items>
+                        </graph_prototype>
+                        <graph_prototype>
+                            <uuid>a682d74b7285448dadf558e16e3a7c30</uuid>
+                            <name>NFS RPC retransmissions on {#MOUNTPOINT}</name>
+                            <graph_items>
+                                <graph_item>
+                                    <sortorder>0</sortorder>
+                                    <color>1A7C11</color>
                                     <item>
                                         <host>Template NFS Client Mounts</host>
                                         <key>nfs.mount.stat[{#MOUNTPOINT},retrans_total]</key>
@@ -732,16 +638,16 @@
                             </graph_items>
                         </graph_prototype>
                         <graph_prototype>
-                            <uuid>w45678rs901kl50617283a2b3c4d5ec6</uuid>
-                            <name>NFS Filesystem Usage on {#MOUNTPOINT}</name>
-                            <width>900</width>
-                            <height>200</height>
-                            <show_triggers>1</show_triggers>
-                            <type>0</type>
+                            <uuid>9b61b950400e42fb872cf47646ea265d</uuid>
+                            <name>NFS free space (%) on {#MOUNTPOINT}</name>
+                            <yaxismin>0</yaxismin>
+                            <yaxismax>100</yaxismax>
+                            <ymin_type_1>FIXED</ymin_type_1>
+                            <ymax_type_1>FIXED</ymax_type_1>
                             <graph_items>
                                 <graph_item>
                                     <sortorder>0</sortorder>
-                                    <color>00CC00</color>
+                                    <color>1A7C11</color>
                                     <item>
                                         <host>Template NFS Client Mounts</host>
                                         <key>vfs.fs.size[{#MOUNTPOINT},pfree]</key>
@@ -749,16 +655,31 @@
                                 </graph_item>
                             </graph_items>
                         </graph_prototype>
+                        <graph_prototype>
+                            <uuid>1e84592624cd4c08b21345c523a942cf</uuid>
+                            <name>NFS space usage on {#MOUNTPOINT}</name>
+                            <graph_items>
+                                <graph_item>
+                                    <sortorder>0</sortorder>
+                                    <color>1A7C11</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>vfs.fs.size[{#MOUNTPOINT},total]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>1</sortorder>
+                                    <color>F63100</color>
+                                    <item>
+                                        <host>Template NFS Client Mounts</host>
+                                        <key>vfs.fs.size[{#MOUNTPOINT},used]</key>
+                                    </item>
+                                </graph_item>
+                            </graph_items>
+                        </graph_prototype>
                     </graph_prototypes>
-                    <host_prototypes/>
                 </discovery_rule>
             </discovery_rules>
-            <macros/>
-            <templates/>
-            <value_maps/>
         </template>
     </templates>
-    <triggers/>
-    <graphs/>
-    <httptests/>
 </zabbix_export>
