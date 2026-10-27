@@ -1,197 +1,101 @@
 # Zabbix NFS Client Mounts Monitoring
 
-## Overview
+Zabbix template and agent scripts for monitoring NFS client mounts on Linux. Low-level discovery (LLD) finds each
+NFS mount, then the template collects accessibility, server reachability, space usage and per-mount NFS statistics
+read from `/proc/self/mountstats`.
 
-This project provides a Zabbix template and associated scripts to monitor NFS (Network File System) client mounts on Linux systems. It uses Low-Level Discovery (LLD) to automatically detect NFS mounts and their associated servers, collecting metrics such as disk space usage, mount accessibility, server connectivity, and detailed NFS statistics (e.g., read/write operations, bytes transferred, retransmissions) from `/proc/self/mountstats`. The template includes item prototypes, trigger prototypes, and graph prototypes to visualize performance and alert on issues like low free space, stale mounts, or high retransmission rates.
+## Versions
 
-Key features:
-- **Automatic Discovery**: Discovers all NFS mounts and their servers using LLD.
-- **Comprehensive Metrics**: Monitors disk space (total, free, used, % free), mount accessibility, server connectivity, and per-mount NFS statistics (e.g., `read`, `write`, `getattr`, `setattr`, `retrans_total`).
-- **Triggers**: Alerts for inaccessible mounts, failed server connections, low free space (<10%), recent remounts, and high operation rates (>100/sec for various NFS operations).
-- **Graphs**: Visualizes NFS operations, data transfer rates, retransmissions, and filesystem usage.
+Each Zabbix major version has its own template because the XML import format and trigger expression syntax differ.
+All three are generated from one definition (`tools/build_templates.py`) so they stay in sync.
 
-The project includes:
-- `template_nfs_client_mounts.xml`: Zabbix template for NFS monitoring.
-- `userparameter_nfs.conf`: Zabbix agent User Parameters for custom metrics.
-- `nfs_discovery.sh`: Script for LLD of NFS mounts and servers.
-- `nfs_mount_stat.sh`: Script to extract NFS statistics from `/proc/self/mountstats`.
+| Folder | Zabbix | Status |
+|--------|--------|--------|
+| `5.0/` | 5.0 LTS | Regenerated in this release; import and confirm on a 5.0 server (the previous file was tested on 5.0.47) |
+| `6.0/` | 6.0 LTS | Regenerated in this release; **not yet imported on a real server** |
+| `7.0/` | 7.0 LTS | Regenerated in this release; **not yet imported on a real server** |
 
-## Setup 
+Update this table as each version is confirmed. `tests/lint_templates.py` checks structure (UUIDs, expression syntax,
+dependencies, graph/item references) but is no substitute for an import test.
 
-### Required Software
-- **Zabbix Server and Agent**: Version 5.0 or later.
-- **Linux System**: The monitored host must run a Linux distribution with NFS client support and `/proc/self/mountstats` available.
-- **Zabbix Agent**: Installed and running on the monitored host.
-- **rpcbind**: Required for `nfs.server.check[*]` to verify NFS server connectivity (install via `apt install rpcbind` or `yum install rpcbind`).
-- **Bash and Standard Utilities**: Scripts require `bash`, `awk`, `grep`, `mount`, and `rpcinfo`.
+## What is monitored (per discovered mount)
 
-### Permissions
-- **Zabbix Agent**: Must run as a user with read access to `/proc/self/mountstats` and execute permissions for scripts in `/usr/local/bin/`.
-- **Scripts**: `nfs_discovery.sh` and `nfs_mount_stat.sh` must be executable (`chmod +x`).
+| What | Key | Notes |
+|------|-----|-------|
+| Accessibility | `nfs.mount.check[{#MOUNTPOINT}]` | `stat` exit code: 0 OK, 124/137 hung, 1/2 missing or stale |
+| Server reachable | `nfs.server.check[{#SERVER},{#MOUNTPOINT}]` | 1 = answers, 0 = does not |
+| Mount age | `nfs.mount.stat[{#MOUNTPOINT},age]` | seconds; a drop means a remount |
+| Throughput | `...,bytes_read` / `...,bytes_written` | application-level bytes, as a rate |
+| Operations/s | `...,read` `write` `getattr` `setattr` `create` `remove` `rename` `readdir` `commit` | ops that exist on NFSv3 and v4 |
+| Retransmissions/s | `...,retrans_total` | sum over ops of (transmissions - ops) |
+| Space | `vfs.fs.size[{#MOUNTPOINT},total/used/free/pfree]` | |
 
-### Hardware
-- Minimal resource requirements; depends on the number of NFS mounts and polling frequency.
-
-## Zabbix configuration
-
-### Step 1: Deploy Scripts
-1. Copy the provided scripts to the monitored host:
-   ```bash
-   sudo cp nfs_discovery.sh /usr/local/bin/
-   sudo cp nfs_mount_stat.sh /usr/local/bin/
-   ```
-2. Make the scripts executable:
-   ```bash
-   sudo chmod +x /usr/local/bin/nfs_discovery.sh
-   sudo chmod +x /usr/local/bin/nfs_mount_stat.sh
-   ```
-
-### Step 2: Configure Zabbix Agent
-1. Copy the User Parameters configuration to the Zabbix agent directory:
-   ```bash
-   sudo cp userparameter_nfs.conf /etc/zabbix/zabbix_agentd.d/
-   ```
-2. Restart the Zabbix agent to apply the configuration:
-   ```bash
-   sudo systemctl restart zabbix-agent
-   ```
-3. Verify the agent is running and no errors occur:
-   ```bash
-   grep -i error /var/log/zabbix/zabbix_agentd.log
-   ```
-
-### Step 3: Import the Zabbix Template
-1. Log in to the Zabbix web interface.
-2. Navigate to **Configuration > Templates > Import**.
-3. Select the version relevant `template_nfs_client_mounts_X.0.xml` from the sub directory and upload it.
-4. Ensure the options "Create new" and "Update existing" are checked as needed.
-5. Apply the template to hosts with NFS mounts.
-
-### Step 4: Verify Monitoring
-1. Wait for the Low-Level Discovery (LLD) to run (default interval: 1 hour) or force discovery:
-   ```bash
-   zabbix_get -s 127.0.0.1 -k nfs.discovery
-   ```
-2. Check **Monitoring > Latest Data** for items like:
-   - `nfs.mount.stat[/mountpoint,read]`
-   - `nfs.mount.stat[/mountpoint,write]`
-   - `vfs.fs.size[/mountpoint,pfree]`
-
-3. Verify graphs in **Monitoring > Graphs** (e.g., "NFS Operations on /mountpoint", "NFS Data Transfer on /mountpoint").
-
-4. Test specific metrics:
-   ```bash
-   zabbix_get -s 127.0.0.1 -k 'nfs.mount.stat[/mountpoint,read]'
-   zabbix_get -s 127.0.0.1 -k 'nfs.mount.stat[/mountpoint,write]'
-   zabbix_get -s 127.0.0.1 -k 'nfs.mount.stat[/mountpoint,getattr]'
-   ```
-
-## Template Links
-
-## Discovery rules
-The following discovery rule obtains a full list of NFS mounts from the client from a list generated by 'mount -t nfs,nfs4'
-
-|Name|Description|Type|Key and additional info|
-|----|-----------|----|----|
-|NFS mounts discovery|Discovers active NFS mounts and their servers.|Zabbix agent|nfs.discovery|
-
-## Items collected
-The following items are collected per each NFS mount.  The first 5 items pull a few popular statistics, the remaining pull particular information about the NFS mount from the /proc/self/mountstats file on the client. 
-
-|Name|Description|Type|Key and additional info|
-|----|-----------|----|----|
-|NFS server [{#SERVER}] connection|Monitors rpcinfo for program '100003'|nfs.server.check[{#SERVER}]|
-|NFS mount [{#MOUNTPOINT}] total space|Size of the mount point in Bytes|Zabbix agent|vfs.fs.size[{#MOUNTPOINT}],total]|
-|NFS mount [{#MOUNTPOINT}] used space|Used space of the mount point in Bytes|Zabbix agent|vfs.fs.size[{#MOUNTPOINT}],used]|
-|NFS mount [{#MOUNTPOINT}] free space|Free space of the mount point in Bytes|Zabbix agent|vfs.fs.size[{#MOUNTPOINT}],free]|
-|NFS mount [{#MOUNTPOINT}] free space (%)|Free space of the mount point in Percent|Zabbix agent|vfs.fs.size[{#MOUNTPOINT}],pfree]|
-|NFS mount [{#MOUNTPOINT}] accessibility|Monitors accessibility of the mount point.|Zabbix agent|nfs.mount.check[{#MOUNTPOINT}]|
-|NFS mount [{#MOUNTPOINT}] age (seconds)| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],age]|
-|NFS mount [{#MOUNTPOINT}] commit operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],commit]|
-|NFS mount [{#MOUNTPOINT}] create operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],create]|
-|NFS mount [{#MOUNTPOINT}] fsinfo operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],fsinfo]|
-|NFS mount [{#MOUNTPOINT}] fsstat operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],fsstat]|
-|NFS mount [{#MOUNTPOINT}] getattr operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],getattr]|
-|NFS mount [{#MOUNTPOINT}] link operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],link]|
-|NFS mount [{#MOUNTPOINT}] mkdir operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],mkdir]|
-|NFS mount [{#MOUNTPOINT}] mknod operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],mknod]|
-|NFS mount [{#MOUNTPOINT}] pathconf operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],pathconf]|
-|NFS mount [{#MOUNTPOINT}] readdir operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],readdir]|
-|NFS mount [{#MOUNTPOINT}] readdirplus operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],readdirplus]|
-|NFS mount [{#MOUNTPOINT}] read operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],read]|
-|NFS mount [{#MOUNTPOINT}] remove operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],remove]|
-|NFS mount [{#MOUNTPOINT}] rename operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],rename]|
-|NFS mount [{#MOUNTPOINT}] rmdir operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],rmdir]|
-|NFS mount [{#MOUNTPOINT}] setattr operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],setattr]|
-|NFS mount [{#MOUNTPOINT}] symlink operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],symlink]|
-|NFS mount [{#MOUNTPOINT}] total bytes read| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],bytes_read]|
-|NFS mount [{#MOUNTPOINT}] total bytes written| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],bytes_written]|
-|NFS mount [{#MOUNTPOINT}] total retransmissions| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],retrans_total]|
-|NFS mount [{#MOUNTPOINT}] write operations| |Zabbix agent|nfs.mount.stat[{#MOUNTPOINT}],write]|
-
+`nfs_mount_stat.sh` also supports `mkdir`, `rmdir`, `mknod`, `symlink`, `link`, `readdirplus`, `fsinfo`, `pathconf` and
+`fsstat` (`FSSTAT` on v3, `STATFS` on v4). They are not in the template because several do not exist on NFSv4 mounts and
+would be unsupported there; add item prototypes if you need them on v3.
 
 ## Triggers
 
-The following are what can be triggered on.  The first three triggers are the High important triggers, the rest are statistical information triggers.
+| Trigger | Priority | Condition |
+|---------|----------|-----------|
+| NFS server not responding | High | server check 0 twice in a row |
+| NFS mount not accessible | High | `stat` check non-zero twice in a row |
+| Free space below `{$NFS.PFREE.HIGH}`% (5) | High | depends on: not accessible |
+| Free space below `{$NFS.PFREE.AVG}`% (10) | Average | depends on: the 5% trigger |
+| Free space below `{$NFS.PFREE.WARN}`% (20) | Warning | depends on: the 10% trigger |
+| Recently (re)mounted | Information | age below `{$NFS.AGE.MIN}` s (300) |
+| Sustained RPC retransmissions | Warning | rate above `{$NFS.RETRANS.RATE}` (0) for 10 minutes |
 
-|Name|Description|Expression|Priority|
-|----|-----------|----------|--------|
-|NFS mount {#MOUNTPOINT} is not accessible|NFS mount point is timing out|{Template NFS Client Mounts:nfs.mount.check[{#MOUNTPOINT}].last()}<>0|High|
-|NFS connection to server {#SERVER} failed|NFS server is unreachable|{Template NFS Client Mounts:nfs.server.check[{#SERVER}].last()}<>0|High|
-|Low free space on NFS mount {#MOUNTPOINT}(<10%)|Free space on mount point is less than 10%|{Template NFS Client Mounts:nfs.server.check[{#SERVER}].last()}<>0|High|
-|High commit rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},commit].last()}>100|Warning|
-|High create rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},create].last()}>100|Warning|
-|High fsinfo rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},fsinfo].last()}>100|Warning|
-|High fsstat rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},fsstat].last()}>100|Warning|
-|High getattr rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},getattr].last()}>100|Warning|
-|High link rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},link].last()}>100|Warning|
-|High mkdir rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},mkdir].last()}>100|Warning|
-|High pathconf rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},pathconf].last()}>100|Warning|
-|High readdirplus rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},readdirplus].last()}>100|Warning|
-|High readdir rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},readdir].last()}>100|Warning|
-|High remove rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},remove].last()}>100|Warning|
-|High rename rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},rename].last()}>100|Warning|
-|High retransmission rate on NFS mount {#MOUNTPOINT}(>0.1/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},retrans_total].last()}>0.1|Warning|
-|High rmdir rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},rmdir].last()}>100|Warning|
-|High setattr rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},setattr].last()}>100|Warning|
-|High symlink rate on NFS mount {#MOUNTPOINT}(>100/sec)| |{Template NFS Client Mounts:nfs.mount.stat[{#MOUNTPOINT},symlink].last()}>100|Warning|
+Workload counters (operations/s) are collected and graphed but do not alert; "busy" is not a failure.
 
+## Setup
 
+1. **Scripts** (on each monitored host):
+   ```
+   sudo install -m 0755 nfs_discovery.sh nfs_mount_stat.sh /usr/local/bin/
+   ```
+2. **Agent config**: copy `userparameter_nfs.conf` into the directory your `zabbix_agentd.conf` `Include=` points at
+   (commonly `/etc/zabbix/zabbix_agentd.d/` or `.conf.d/`), set `Timeout=10` in `zabbix_agentd.conf`, and restart the agent.
+   The checks wrap `stat` and `rpcinfo` in `timeout`, which must stay below the agent `Timeout`.
+3. **Template**: import `5.0/`, `6.0/` or `7.0/` to match your server (Data collection / Configuration > Templates > Import)
+   and link it to the host. If you are replacing an older version, tick "Delete missing" for discovery rules.
+4. **Verify** against the running agent from your Zabbix server or proxy (the host must be in the agent `Server=` list):
+   ```
+   zabbix_get -s HOST -k nfs.discovery
+   zabbix_get -s HOST -k 'nfs.mount.stat[/mountpoint,age]'
+   zabbix_get -s HOST -k 'nfs.mount.check[/mountpoint]'
+   zabbix_get -s HOST -k 'nfs.server.check[SERVER,/mountpoint]'
+   ```
+   `zabbix_agentd -t` runs a separate process and can disagree with the daemon; trust `zabbix_get`.
 
-## Feedback
+## Requirements
 
-Please open an issue against this project: https://github.com/ulsdevteam/template_nfs_mounts.
+Zabbix agent (passive checks) and server 5.0, 6.0 or 7.0; Linux with `/proc/self/mountstats`; `bash`, `awk`, `grep`,
+`timeout`, `stat`. `rpcinfo` (package `rpcbind` or `rpcbind-utils`) is needed only for the default server check. Servers that do
+not answer rpcinfo (some NFSv4-only setups) can use the TCP 2049 variant in `userparameter_nfs.conf`.
+The agent user needs read access to `/proc/self/mountstats` and execute access to the scripts.
+
+## Development
+
+```
+tests/run_tests.sh                 # script tests against fixtures (real NFSv4 mountstats data + a synthetic v3 mount)
+python3 tools/build_templates.py   # regenerate 5.0/6.0/7.0 XML (edit the definition at the top of the script, not the XML)
+python3 tests/lint_templates.py    # structural lint of the generated templates
+```
+
+The scripts honour `NFS_MOUNTSTATS` and `NFS_PROC_MOUNTS` to read fixtures instead of `/proc`.
 
 ## Troubleshooting
-- **Import Errors**: Check `/var/log/zabbix/zabbix_server.log` for XML parsing issues.
-- **Script Errors**: Review `/tmp/nfs_mount_stat_debug.log` for issues with `nfs_mount_stat.sh` (e.g., missing metrics like `getattr`).
-  ```bash
-  cat /tmp/nfs_mount_stat_debug.log | grep -A 5 "getattr"
-  ```
-- **Missing Metrics**: If metrics like `symlink` or `mknod` return `ZBX_NOTSUPPORTED`, verify their presence:
-  ```bash
-  grep -A 20 "[[:space:]]/mountpoint[[:space:]]" /proc/self/mountstats | grep -Ei "SYMLINK|MKNOD"
-  ```
-- **Dependencies**: Verify `rpcbind` is installed for `nfs.server.check[*]`:
-  ```bash
-  rpm -q rpcbind || apt install rpcbind
-  ```
 
-## Trigger Adjustment
-Feel free to adjust per host triggers or adjust the triggers in the template to suit your system's needs.  This may include disabling some triggers or increasing the default value of 100/sec for each of the operations.
-
-## Notes
-- **Performance**: Adjust the LLD interval (default: 1h) or item polling intervals (default: 1m) if monitoring many mounts.
-
-## Demo
-
-## Known issues
-- Created and tested with Zabbix version 5.0.47.
-- **NOTE:** Templates for Zabbix version 6.0 and 7.0 were AI created and may need tested/tweaked to work properly.
+- **`nfs.mount.stat` returns `ZBX_NOTSUPPORTED: No valid data for X`**: that operation is not listed for this mount's NFS version. Check
+  `grep -A100 'mounted on /mountpoint ' /proc/self/mountstats`.
+- **Server check is 0 but the mount works**: run `rpcinfo -t SERVER 100003`; if it fails, use the TCP 2049 variant of `nfs.server.check`.
+- **Mount points containing spaces** are not supported (the kernel escapes them as `\040`).
+- **Agent newer than server** (for example a 6.0 agent on a 5.0 server) usually works for passive checks but is unsupported; upgrade the server first.
 
 ## References
+
 - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/nfs_iostat.h
 - https://utcc.utoronto.ca/~cks/space/blog/linux/NFSMountstatsBytesEvents
 - https://www.zabbix.com/documentation/guidelines/en/thosts/key_principles
 - https://www.zabbix.com/documentation/guidelines/en/thosts/template_styling#template-styling
-

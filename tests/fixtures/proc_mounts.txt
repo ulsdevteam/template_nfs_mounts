@@ -1,0 +1,8 @@
+proc /proc proc rw 0 0
+/dev/mapper/rhel-root / xfs rw 0 0
+nfs-a.example.edu:/export_a /var/www/peertube/storage nfs4 rw,vers=4.2 0 0
+10.0.0.9:/export/v3 /mnt/v3data nfs rw,vers=3 0 0
+10.0.0.9:/export/v3 /mnt/v3data nfs rw,vers=3 0 0
+[fe80::1]:/ex /mnt/v6 nfs4 rw 0 0
+srv:/odd /mnt/we"ird nfs4 rw 0 0
+tmpfs /run tmpfs rw 0 0
