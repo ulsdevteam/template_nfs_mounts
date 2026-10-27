@@ -73,7 +73,12 @@ Workload counters (operations/s) are collected and graphed but do not alert; "bu
 Zabbix agent (passive checks) and server 5.0, 6.0 or 7.0; Linux with `/proc/self/mountstats`; `bash`, `awk`, `grep`,
 `timeout`, `stat`. `rpcinfo` (package `rpcbind` or `rpcbind-utils`) is needed only for the default server check. Servers that do
 not answer rpcinfo (some NFSv4-only setups) can use the TCP 2049 variant in `userparameter_nfs.conf`.
-The agent user needs read access to `/proc/self/mountstats` and execute access to the scripts.
+The agent user needs read access to `/proc/self/mountstats` and execute access to the scripts. It needs no `sudo` access: the scripts read `/proc` and never run `mount`.
+
+**SELinux (RHEL and derivatives).** In enforcing mode the agent runs in the `zabbix_agent_t` domain, which is not allowed to
+connect to the portmapper (111) or NFS (2049) ports, so `nfs.server.check` returns non-zero under the agent even though
+`rpcinfo` works from a shell. Install the small policy module in `selinux/` (build steps are in the file header). It grants
+only those two connections. The other checks need nothing: they read `/proc` and run `stat`.
 
 ## Development
 
@@ -145,6 +150,8 @@ its own lookup rather than just a name in the list:
 
 ## Troubleshooting
 
+- **`nfs.server.check` is non-zero under the agent but `rpcinfo` works in a shell** (also as `sudo -u zabbix`): SELinux. Run
+  `ausearch -m avc -c rpcinfo -ts recent` and look for `name_connect` denials on ports 111 and 2049, then install `selinux/zabbix_nfs_rpcinfo.te`.
 - **`nfs.mount.stat` returns `ZBX_NOTSUPPORTED: No valid data for X`**: that operation is not listed for this mount's NFS version. Check
   `grep -A100 'mounted on /mountpoint ' /proc/self/mountstats`.
 - **Server check is non-zero but the mount works**: run `rpcinfo -t SERVER 100003`; if it fails, use the TCP 2049 variant of `nfs.server.check`.

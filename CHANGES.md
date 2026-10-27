@@ -12,6 +12,9 @@
 - `nfs.server.check` is `timeout 4 /usr/sbin/rpcinfo ...; echo $?`: it keeps the original contract (the exit code, 0 = OK) and
   gains a timeout and the full `rpcinfo` path. It also accepts `{#SERVER},{#MOUNTPOINT}` so two mounts on one server no longer
   collide on the item key; the agent ignores the second parameter, so the new config works with the old template too.
+  
+- Added `selinux/zabbix_nfs_rpcinfo.te`: policy module that lets the agent connect to the portmapper and NFS ports, needed by
+  `nfs.server.check` on SELinux-enforcing hosts. The scripts no longer run `mount`, so no sudo rule is needed.
 
 **Templates**
 - 6.0 and 7.0 were the same file apart from the version tag, with invalid UUIDs, legacy 5.0 elements, numeric enums and
