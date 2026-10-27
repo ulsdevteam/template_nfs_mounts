@@ -70,10 +70,10 @@
                         </item_prototype>
                         <item_prototype>
                             <uuid>971a245538b24b4c961910db44fc5182</uuid>
-                            <name>NFS server [{#SERVER}] reachable via rpcinfo (mount {#MOUNTPOINT})</name>
+                            <name>NFS server [{#SERVER}] rpcinfo exit code (mount {#MOUNTPOINT})</name>
                             <key>nfs.server.check[{#SERVER},{#MOUNTPOINT}]</key>
                             <delay>1m</delay>
-                            <description>1 if the server answers for the NFS program (100003), 0 otherwise.</description>
+                            <description>Exit code of rpcinfo for the NFS program (100003). 0 = server answers, 124 = timed out, other non-zero = rpcinfo failed.</description>
                             <tags>
                                 <tag>
                                     <tag>component</tag>
@@ -405,10 +405,10 @@
                     <trigger_prototypes>
                         <trigger_prototype>
                             <uuid>c4fb81542ca54f0f8227f0b6b6450e79</uuid>
-                            <expression>max(/Template NFS Client Mounts/nfs.server.check[{#SERVER},{#MOUNTPOINT}],#2)=0</expression>
+                            <expression>min(/Template NFS Client Mounts/nfs.server.check[{#SERVER},{#MOUNTPOINT}],#2)&gt;0</expression>
                             <name>NFS server {#SERVER} is not responding (checked for {#MOUNTPOINT})</name>
                             <priority>HIGH</priority>
-                            <description>The server check failed twice in a row.</description>
+                            <description>The server check (rpcinfo) returned a non-zero exit code twice in a row.</description>
                             <tags>
                                 <tag>
                                     <tag>scope</tag>

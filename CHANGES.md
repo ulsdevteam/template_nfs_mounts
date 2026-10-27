@@ -9,8 +9,9 @@
 
 **Agent config**
 - `nfs.mount.check` uses `timeout -k 1 4 stat -t` (was `timeout 5 ls`, heavier and longer than the default agent Timeout).
-- `nfs.server.check` is `timeout 4 /usr/sbin/rpcinfo ... && echo 1 || echo 0`: **1 = OK** (was the raw exit code, 0 = OK) and takes
-  `{#SERVER},{#MOUNTPOINT}` so two mounts on one server no longer collide on the item key.
+- `nfs.server.check` is `timeout 4 /usr/sbin/rpcinfo ...; echo $?`: it keeps the original contract (the exit code, 0 = OK) and
+  gains a timeout and the full `rpcinfo` path. It also accepts `{#SERVER},{#MOUNTPOINT}` so two mounts on one server no longer
+  collide on the item key; the agent ignores the second parameter, so the new config works with the old template too.
 
 **Templates**
 - 6.0 and 7.0 were the same file apart from the version tag, with invalid UUIDs, legacy 5.0 elements, numeric enums and
@@ -22,4 +23,7 @@
 - "NFS Data Transfer" graph now plots bytes, not operation counts.
 - Dropped item prototypes that do not exist on NFSv4 (`mkdir`, `rmdir`, `mknod`, `readdirplus`) and low-value ones.
 
-**Upgrade note:** `nfs.server.check` changed meaning (1 = OK). Update `userparameter_nfs.conf` and the template together.
+**Upgrade notes**
+- The `nfs.server.check` item key gains a second parameter, so Zabbix creates new items; history of the old per-server item is not carried over.
+- Counter items (operations, bytes, retransmissions) now use *Change per second*; history stored before the upgrade holds per-interval deltas.
+- Deploy the agent config and re-import the template in any order; the check semantics did not change.

@@ -31,8 +31,8 @@ K_PF = f"vfs.fs.size[{MP},pfree]"
 ITEMS = [  # name, key, delay, value_type, units, description, rate?
     (f"NFS mount [{MP}] accessibility (stat exit code)", K_CHECK, "1m", "UNSIGNED", None,
      "Exit code of a timed stat on the mount point. 0 = OK, 124/137 = hung (timeout fired), 1/2 = missing or stale handle.", False),
-    (f"NFS server [{SRV}] reachable via rpcinfo (mount {MP})", K_SRV, "1m", "UNSIGNED", None,
-     "1 if the server answers for the NFS program (100003), 0 otherwise.", False),
+    (f"NFS server [{SRV}] rpcinfo exit code (mount {MP})", K_SRV, "1m", "UNSIGNED", None,
+     "Exit code of rpcinfo for the NFS program (100003). 0 = server answers, 124 = timed out, other non-zero = rpcinfo failed.", False),
     (f"NFS mount [{MP}] age", K_AGE, "1m", "UNSIGNED", "s", "Seconds since the mount was established.", False),
     (f"NFS mount [{MP}] bytes read (application level)", f"nfs.mount.stat[{MP},bytes_read]", "1m", "FLOAT", "Bps", None, True),
     (f"NFS mount [{MP}] bytes written (application level)", f"nfs.mount.stat[{MP},bytes_written]", "1m", "FLOAT", "Bps", None, True),
@@ -50,8 +50,8 @@ MACROS = [("{$NFS.PFREE.HIGH}", "5", "Free space % below which HIGH fires"),
           ("{$NFS.RETRANS.RATE}", "0", "RPC retransmissions/s that must be exceeded for 10m to alert")]
 # id, (key, func, args, operator+rhs), name, priority, description, depends_on
 TRIGGERS = [
-    ("srv", (K_SRV, "max", "#2", "=0"), f"NFS server {SRV} is not responding (checked for {MP})", "HIGH",
-     "The server check failed twice in a row.", None),
+    ("srv", (K_SRV, "min", "#2", ">0"), f"NFS server {SRV} is not responding (checked for {MP})", "HIGH",
+     "The server check (rpcinfo) returned a non-zero exit code twice in a row.", None),
     ("acc", (K_CHECK, "min", "#2", ">0"), f"NFS mount {MP} is not accessible", "HIGH",
      "stat on the mount point failed or timed out twice in a row (hung or stale mount).", None),
     ("pf5", (K_PF, "last", "", "<{$NFS.PFREE.HIGH}"), f"NFS mount {MP}: free space below {{$NFS.PFREE.HIGH}}%", "HIGH", "", "acc"),

@@ -23,7 +23,7 @@ dependencies, graph/item references) but is no substitute for an import test.
 | What | Key | Notes |
 |------|-----|-------|
 | Accessibility | `nfs.mount.check[{#MOUNTPOINT}]` | `stat` exit code: 0 OK, 124/137 hung, 1/2 missing or stale |
-| Server reachable | `nfs.server.check[{#SERVER},{#MOUNTPOINT}]` | 1 = answers, 0 = does not |
+| Server reachable | `nfs.server.check[{#SERVER},{#MOUNTPOINT}]` | `rpcinfo` exit code: 0 OK, 124 timed out, other non-zero failed |
 | Mount age | `nfs.mount.stat[{#MOUNTPOINT},age]` | seconds; a drop means a remount |
 | Throughput | `...,bytes_read` / `...,bytes_written` | application-level bytes, as a rate |
 | Operations/s | `...,read` `write` `getattr` `setattr` `create` `remove` `rename` `readdir` `commit` | ops that exist on NFSv3 and v4 |
@@ -38,7 +38,7 @@ would be unsupported there; add item prototypes if you need them on v3.
 
 | Trigger | Priority | Condition |
 |---------|----------|-----------|
-| NFS server not responding | High | server check 0 twice in a row |
+| NFS server not responding | High | server check non-zero twice in a row |
 | NFS mount not accessible | High | `stat` check non-zero twice in a row |
 | Free space below `{$NFS.PFREE.HIGH}`% (5) | High | depends on: not accessible |
 | Free space below `{$NFS.PFREE.AVG}`% (10) | Average | depends on: the 5% trigger |
@@ -85,11 +85,69 @@ python3 tests/lint_templates.py    # structural lint of the generated templates
 
 The scripts honour `NFS_MOUNTSTATS` and `NFS_PROC_MOUNTS` to read fixtures instead of `/proc`.
 
+## Adding a metric
+
+There are two cases. Most additions are the first one.
+
+### A. Another NFS operation count (for example LOOKUP)
+
+Operation names are listed under `per-op statistics` in `/proc/self/mountstats`. You can see which ones your mounts
+have with `grep -A100 'mounted on /your/mount ' /proc/self/mountstats`. Names differ between NFS versions, and a
+name that is missing on a mount makes the item unsupported there. The worked example below adds `lookup`.
+
+1. **Script.** In `nfs_mount_stat.sh`, add the lower-case name to the operation list in the `case` block:
+
+   ```
+   read|write|getattr|...|pathconf|commit|lookup)
+   ```
+
+   The script looks the operation up under the upper-case version of the name (`LOOKUP:`). If the operation has a
+   different name on NFSv3 and NFSv4 (as `fsstat` does: `FSSTAT` / `STATFS`), add its own `case` branch that sets
+   `operation_pattern` to both names instead, like the existing `fsstat` branch.
+2. **Test.** In `tests/run_tests.sh`, add a line next to the other `check` lines, using a value from
+   `tests/fixtures/mountstats_nfs.txt` (the NFSv4 mount has `LOOKUP: 6773 ...`):
+
+   ```
+   check "v4 lookup"            6773         $V4 lookup
+   ```
+
+   If the operation does not exist in the fixture, add a line for it to the fixture first. Run `tests/run_tests.sh`.
+3. **Template.** In `tools/build_templates.py`, add the name to the `OPS` list. That one change creates the item
+   prototype (as a per-second rate) and adds it to the operations graph. Then regenerate and lint:
+
+   ```
+   python3 tools/build_templates.py
+   python3 tests/lint_templates.py
+   ```
+4. **Deploy.** Copy the updated `nfs_mount_stat.sh` to `/usr/local/bin/` on each host, and re-import the template for
+   your Zabbix version. A new item prototype appears for every mount at the next discovery run.
+5. **Document.** Add it to the operations row of the table under "What is monitored".
+
+Adding a trigger works the same way: add an entry to `TRIGGERS` in `tools/build_templates.py`. The script writes the
+right expression syntax for each Zabbix version, so write the entry once.
+
+### B. A different kind of value (for example average round-trip time)
+
+Operation lines carry more than the count. After the operation name the columns are: operations, transmissions,
+major timeouts, bytes sent, bytes received, cumulative queue time (ms), cumulative round-trip time (ms), cumulative
+execution time (ms), and on newer kernels an error count. A latency metric reads one of those columns, so it needs
+its own lookup rather than just a name in the list:
+
+1. In `nfs_mount_stat.sh`, add a new `lookup_kind` in the `case` block (for example `rtt`) that sets the operation
+   and the column, then add a matching rule in the `awk` block next to the `op` rule. The `op` rule reads `$2`; yours
+   would read `$7` for the round-trip column.
+2. Cumulative milliseconds only mean something divided by the operation count over the same interval. Either add a
+   second metric that returns the count, or compute the average in Zabbix with a calculated item. A raw
+   cumulative-milliseconds item with *Change per second* shows total wait time per second, not latency.
+3. Add a fixture value, a test, and an entry in `tools/build_templates.py` as in steps 2 to 5 above. Because the
+   existing rate preprocessing is attached to the `rate` flag in `ITEMS`, a new item with a different shape needs its
+   own `ITEMS` entry rather than an addition to `OPS`.
+
 ## Troubleshooting
 
 - **`nfs.mount.stat` returns `ZBX_NOTSUPPORTED: No valid data for X`**: that operation is not listed for this mount's NFS version. Check
   `grep -A100 'mounted on /mountpoint ' /proc/self/mountstats`.
-- **Server check is 0 but the mount works**: run `rpcinfo -t SERVER 100003`; if it fails, use the TCP 2049 variant of `nfs.server.check`.
+- **Server check is non-zero but the mount works**: run `rpcinfo -t SERVER 100003`; if it fails, use the TCP 2049 variant of `nfs.server.check`.
 - **Mount points containing spaces** are not supported (the kernel escapes them as `\040`).
 - **Agent newer than server** (for example a 6.0 agent on a 5.0 server) usually works for passive checks but is unsupported; upgrade the server first.
 
