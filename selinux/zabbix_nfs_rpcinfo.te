@@ -1,0 +1,22 @@
+module zabbix_nfs_rpcinfo 1.0;
+
+# Lets the Zabbix agent run "rpcinfo -t <server> 100003" (the nfs.server.check item) on SELinux-enforcing hosts.
+# rpcinfo makes two TCP connections: to the portmapper (port 111), then to the NFS port (2049).
+# Without these rules the agent's domain is denied both, and the check fails only when run by the agent.
+#
+# Build and install (needs policycoreutils-python-utils, selinux-policy-devel):
+#   checkmodule -M -m -o zabbix_nfs_rpcinfo.mod zabbix_nfs_rpcinfo.te
+#   semodule_package -o zabbix_nfs_rpcinfo.pp -m zabbix_nfs_rpcinfo.mod
+#   semodule -i zabbix_nfs_rpcinfo.pp
+# Remove with: semodule -r zabbix_nfs_rpcinfo
+
+require {
+        type zabbix_agent_t;
+        type portmap_port_t;
+        type nfs_port_t;
+        class tcp_socket name_connect;
+}
+
+#============= zabbix_agent_t ==============
+allow zabbix_agent_t portmap_port_t:tcp_socket name_connect;
+allow zabbix_agent_t nfs_port_t:tcp_socket name_connect;
